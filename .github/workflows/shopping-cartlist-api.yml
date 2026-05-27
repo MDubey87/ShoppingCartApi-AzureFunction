@@ -47,12 +47,12 @@ jobs:
       with:
         name: functionapp
         path: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-    - name: Azure Login
-      uses: azure/login@v2
-      with:
-        client-id: ${{ vars.shopping_cartlist_api_CLIENT_ID_991F }}
-        tenant-id: ${{ vars.shopping_cartlist_api_TENANT_ID_991F }}
-        subscription-id: ${{ vars.shopping_cartlist_api_SUBSCRIPTION_ID_991F }}
+    # - name: Azure Login
+    #   uses: azure/login@v2
+    #   with:
+    #     client-id: ${{ vars.shopping_cartlist_api_CLIENT_ID_991F }}
+    #     tenant-id: ${{ vars.shopping_cartlist_api_TENANT_ID_991F }}
+    #     subscription-id: ${{ vars.shopping_cartlist_api_SUBSCRIPTION_ID_991F }}
     - name: Deploy to Azure Function App
       uses: Azure/functions-action@v1
       with:
