@@ -58,15 +58,24 @@ jobs:
       with:
         name: functionapp
         path: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-    # - name: Azure Login
-    #   uses: azure/login@v2
-    #   with:
-    #     client-id: ${{ vars.shopping_cartlist_api_CLIENT_ID_991F }}
-    #     tenant-id: ${{ vars.shopping_cartlist_api_TENANT_ID_991F }}
-    #     subscription-id: ${{ vars.shopping_cartlist_api_SUBSCRIPTION_ID_991F }}
-    - name: Deploy to Azure Function App
-      uses: Azure/functions-action@v1
+    
+    - name: Azure Login
+      uses: azure/login@v2
       with:
-        app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
-        publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
-        package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    - name: Deploy to Function App (CLI)
+      run: |
+        az functionapp deployment source config-zip \
+          --resource-group azure-function-rg \
+          --name ${{ env.AZURE_FUNCTIONAPP_NAME }} \
+          --src "${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}"
+
+    # - name: Deploy to Azure Function App
+    #   uses: Azure/functions-action@v1
+    #   with:
+    #     app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
+    #     publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
+    #     package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
