@@ -29,10 +29,21 @@ jobs:
         dotnet-quality: preview
     - name: Restore
       run: dotnet restore "${{ env.WORKING_DIRECTORY }}"
+      
+    - name: Clean
+      run: dotnet clean "${{ env.WORKING_DIRECTORY }}"
+
     - name: Build
       run: dotnet build "${{ env.WORKING_DIRECTORY }}" --configuration ${{ env.CONFIGURATION }} --no-restore
+
     - name: Publish
-      run: dotnet publish "${{ env.WORKING_DIRECTORY }}" --configuration ${{ env.CONFIGURATION }} --no-build --output "${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}"
+      run: dotnet publish "${{ env.WORKING_DIRECTORY }}" --configuration ${{ env.CONFIGURATION }} --output "${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}"
+
+    
+    - name: Verify publish output
+      run: |
+        dir "${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}"
+
     - name: Publish Artifacts
       uses: actions/upload-artifact@v4
       with:
