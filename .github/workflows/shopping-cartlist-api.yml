@@ -8,14 +8,14 @@ permissions:
   contents: read
 env:
   AZURE_FUNCTIONAPP_NAME: shopping-cartlist-api
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: ./published
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: .\published
   CONFIGURATION: Release
   DOTNET_CORE_VERSION: 10.0.x
   WORKING_DIRECTORY: .
   DOTNET_CORE_VERSION_INPROC: 6.0.x
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
     - name: Setup .NET SDK
@@ -39,15 +39,20 @@ jobs:
         name: functionapp
         path: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     needs: build
     steps:
     - name: Download artifact from build job
       uses: actions/download-artifact@v4
       with:
         name: functionapp
-        path: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}    
-
+        path: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        client-id: ${{ vars.shopping_cartlist_api_CLIENT_ID_991F }}
+        tenant-id: ${{ vars.shopping_cartlist_api_TENANT_ID_991F }}
+        subscription-id: ${{ vars.shopping_cartlist_api_SUBSCRIPTION_ID_991F }}
     - name: Deploy to Azure Function App
       uses: Azure/functions-action@v1
       with:
