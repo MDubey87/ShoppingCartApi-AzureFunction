@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace ShoppingCartList.Models
 {
-    internal class ShoppingCartItem : TableEntity
+    public class ShoppingCartItem : TableEntity
     {
         [JsonProperty("id")]
         public string Id { get; set; } = Guid.NewGuid().ToString();
