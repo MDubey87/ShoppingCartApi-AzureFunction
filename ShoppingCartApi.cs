@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using ShoppingCartList.Models;
@@ -24,7 +25,7 @@ public class ShoppingCartApi
     }
 
     [Function("GetShoppingCartItems")]
-    public async Task<IActionResult> GetShoppingCartItems([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "shoppingcartitem")] HttpRequest req)
+    public async Task<HttpResponseData> GetShoppingCartItems([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "shoppingcartitem")] HttpRequestData req)
     {
         _logger.LogInformation("Getting all shopping cart items.");
         List<ShoppingCartItem> _shoppingCartItems = new();
@@ -34,43 +35,57 @@ public class ShoppingCartApi
             var response = await items.ReadNextAsync();
             _shoppingCartItems.AddRange(response);
         }
-        return new OkObjectResult(_shoppingCartItems);
+
+        var responseData = req.CreateResponse(HttpStatusCode.OK);
+        await responseData.WriteAsJsonAsync(_shoppingCartItems);
+
+        return responseData;
     }
 
     [Function("GetShoppingCartItem")]
-    public async Task<IActionResult> GetShoppingCartItemById([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "shoppingcartitem/{id}/{category}")] HttpRequest req, string id, string category)
+    public async Task<HttpResponseData> GetShoppingCartItemById([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "shoppingcartitem/{id}/{category}")] HttpRequestData req, string id, string category)
     {
         _logger.LogInformation("Getting shopping cart item by Id:{id} and Category:{category}.", id, category);
         try
         {
             var item = await _container.ReadItemAsync<ShoppingCartItem>(id, new PartitionKey(category));
-            return new OkObjectResult(item.Resource);
+            var responseData = req.CreateResponse(HttpStatusCode.OK);
+            await responseData.WriteAsJsonAsync(item.Resource);
+            return responseData;
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
-            return new NotFoundObjectResult("Item not found.");
+            var responseData = req.CreateResponse(HttpStatusCode.NotFound);
+            await responseData.WriteAsJsonAsync("Item not found.");
+            return responseData;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "An error occurred while retrieving the item by Id:{id} and Category:{category}.", id, category);
-            return new ObjectResult("An error occurred while retrieving the item.") { StatusCode = StatusCodes.Status500InternalServerError };
+            var responseData = req.CreateResponse(HttpStatusCode.InternalServerError);
+            await responseData.WriteAsJsonAsync("An error occurred while retrieving the item.");
+            return responseData;
         }
 
     }
 
     [Function("CreateShoppingCartItem")]
-    public async Task<IActionResult> CreateShoppingCartItem([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "shoppingcartitem")] HttpRequest req)
+    public async Task<HttpResponseData> CreateShoppingCartItem([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "shoppingcartitem")] HttpRequestData req)
     {
         _logger.LogInformation("Creating shopping cart item.");
         string requestData = await new StreamReader(req.Body).ReadToEndAsync();
         if (requestData is null)
         {
-            return new BadRequestObjectResult("Invalid item data.");
+            var responseData = req.CreateResponse(HttpStatusCode.BadRequest);
+            await responseData.WriteAsJsonAsync("Invalid item data.");
+            return responseData;
         }
         var data = JsonConvert.DeserializeObject<CreateShoppingCartItem>(requestData);
         if (data == null || string.IsNullOrWhiteSpace(data.ItemName))
         {
-            return new BadRequestObjectResult("Invalid item data.");
+            var responseData = req.CreateResponse(HttpStatusCode.BadRequest);
+            await responseData.WriteAsJsonAsync("Invalid item data.");
+            return responseData;
         }
         var newItem = new ShoppingCartItem
         {
@@ -78,11 +93,13 @@ public class ShoppingCartApi
             Category = data.Category,
         };
         await _container.CreateItemAsync(newItem, new PartitionKey(newItem.Category));
-        return new OkObjectResult(newItem);
+        var response = req.CreateResponse(HttpStatusCode.Created);
+        await response.WriteAsJsonAsync(newItem);
+        return response;
     }
 
     [Function("UpdateShoppingCartItem")]
-    public async Task<IActionResult> UpdateShoppingCartItem([HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "shoppingcartitem/{id}/{category}")] HttpRequest req, string id, string category)
+    public async Task<HttpResponseData> UpdateShoppingCartItem([HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "shoppingcartitem/{id}/{category}")] HttpRequestData req, string id, string category)
     {
         _logger.LogInformation("Updating shopping cart item by Id:{id} and Category:{category}.", id, category);
 
@@ -91,35 +108,47 @@ public class ShoppingCartApi
             var item = await _container.ReadItemAsync<ShoppingCartItem>(id, new PartitionKey(category));
             if (item.StatusCode == HttpStatusCode.NotFound)
             {
-                return new NotFoundObjectResult("Item not found.");
+                var responseData = req.CreateResponse(HttpStatusCode.NotFound);
+                await responseData.WriteAsJsonAsync("Item not found.");
+                return responseData;
             }
             string requestData = await new StreamReader(req.Body).ReadToEndAsync();
             if (requestData is null)
             {
-                return new BadRequestObjectResult("Invalid item data.");
+                var responseData = req.CreateResponse(HttpStatusCode.BadRequest);
+                await responseData.WriteAsJsonAsync("Invalid item data.");
+                return responseData;
             }
             var data = JsonConvert.DeserializeObject<UpdateShoppingCartItem>(requestData);
             if (data == null)
             {
-                return new BadRequestObjectResult("Invalid item data.");
+                var responseData = req.CreateResponse(HttpStatusCode.BadRequest);
+                await responseData.WriteAsJsonAsync("Invalid item data.");
+                return responseData;
             }
             item.Resource.Collected = data.Collected;
-            return new OkObjectResult(item.Resource);
+            var response = req.CreateResponse(HttpStatusCode.OK);
+            await response.WriteAsJsonAsync(item.Resource);
+            return response;
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
-            return new NotFoundObjectResult("Item not found.");
+            var responseData = req.CreateResponse(HttpStatusCode.NotFound);
+            await responseData.WriteAsJsonAsync("Item not found.");
+            return responseData;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "An error occurred while updating the item by Id:{id} and Category:{category}.", id, category);
-            return new ObjectResult("An error occurred while updating the item.") { StatusCode = StatusCodes.Status500InternalServerError };
+            var responseData = req.CreateResponse(HttpStatusCode.InternalServerError);
+            await responseData.WriteAsJsonAsync("An error occurred while updating the item.");
+            return responseData;
         }
         
     }
 
     [Function("DeleteShoppingCartItem")]
-    public async Task<IActionResult> DeleteShoppingCartItem([HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "shoppingcartitem/{id}/{category}")] HttpRequest req, string id, string category)
+    public async Task<HttpResponseData> DeleteShoppingCartItem([HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "shoppingcartitem/{id}/{category}")] HttpRequestData req, string id, string category)
     {
         _logger.LogInformation("Deleting shopping cart item by Id:{id} and Category:{category}.", id, category);
 
@@ -128,19 +157,27 @@ public class ShoppingCartApi
             var item = await _container.ReadItemAsync<ShoppingCartItem>(id, new PartitionKey(category));
             if (item.StatusCode == HttpStatusCode.NotFound)
             {
-                return new NotFoundObjectResult("Item not found.");
+                var responseData = req.CreateResponse(HttpStatusCode.NotFound);
+                await responseData.WriteAsJsonAsync("Item not found.");
+                return responseData;
             }
             await _container.DeleteItemAsync<ShoppingCartItem>(id, new PartitionKey(category));
-            return new OkObjectResult("Item deleted successfully.");
+            var response = req.CreateResponse(HttpStatusCode.OK);
+            await response.WriteAsJsonAsync("Item deleted successfully.");
+            return response;
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
-            return new NotFoundObjectResult("Item not found.");
+            var responseData = req.CreateResponse(HttpStatusCode.NotFound);
+            await responseData.WriteAsJsonAsync("Item not found.");
+            return responseData;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "An error occurred while deleting the item by Id:{id} and Category:{category}.", id, category);
-            return new ObjectResult("An error occurred while deleting the item.") { StatusCode = StatusCodes.Status500InternalServerError };
+            var responseData = req.CreateResponse(HttpStatusCode.InternalServerError);
+            await responseData.WriteAsJsonAsync("An error occurred while deleting the item.");
+            return responseData;
         }
         
     }
