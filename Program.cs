@@ -6,8 +6,7 @@ using Microsoft.Azure.Cosmos.Fluent;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
-builder.ConfigureFunctionsWebApplication();
-
+//builder.ConfigureFunctionsWebApplication();
 builder.Services.AddFunctionsWorkerDefaults();
 builder.Services.AddSingleton(s =>
 {
