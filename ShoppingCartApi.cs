@@ -105,13 +105,6 @@ public class ShoppingCartApi
 
         try
         {
-            var item = await _container.ReadItemAsync<ShoppingCartItem>(id, new PartitionKey(category));
-            if (item.StatusCode == HttpStatusCode.NotFound)
-            {
-                var responseData = req.CreateResponse(HttpStatusCode.NotFound);
-                await responseData.WriteAsJsonAsync("Item not found.");
-                return responseData;
-            }
             string requestData = await new StreamReader(req.Body).ReadToEndAsync();
             if (requestData is null)
             {
@@ -126,7 +119,19 @@ public class ShoppingCartApi
                 await responseData.WriteAsJsonAsync("Invalid item data.");
                 return responseData;
             }
+
+            var item = await _container.ReadItemAsync<ShoppingCartItem>(id, new PartitionKey(category));
+            if (item.StatusCode == HttpStatusCode.NotFound)
+            {
+                var responseData = req.CreateResponse(HttpStatusCode.NotFound);
+                await responseData.WriteAsJsonAsync("Item not found.");
+                return responseData;
+            }
+            
+           
             item.Resource.Collected = data.Collected;
+            await _container.UpsertItemAsync(item.Resource);
+
             var response = req.CreateResponse(HttpStatusCode.OK);
             await response.WriteAsJsonAsync(item.Resource);
             return response;
