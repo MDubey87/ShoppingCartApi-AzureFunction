@@ -13,7 +13,6 @@ namespace ShoppingCartList;
 public class ShoppingCartApi
 {
     private readonly ILogger<ShoppingCartApi> _logger;
-    //private static List<ShoppingCartItem> _shoppingCartItems = new();
     private readonly CosmosClient _cosmosClient;
     private readonly Container _container;
 
