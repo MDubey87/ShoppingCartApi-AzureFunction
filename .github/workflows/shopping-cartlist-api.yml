@@ -1,77 +1,77 @@
-name: Build and deploy .NET Core application to Function App shopping-cartlist-api
-on:
-  push:
-    branches:
-    - master
-permissions:
-  id-token: write
-  contents: read
-env:
-  AZURE_FUNCTIONAPP_NAME: shopping-cartlist-api
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: .\published
-  CONFIGURATION: Release
-  DOTNET_CORE_VERSION: 10.0.x
-  WORKING_DIRECTORY: .
-  DOTNET_CORE_VERSION_INPROC: 6.0.x
-jobs:
-  build:
-    runs-on: windows-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Setup .NET SDK
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: ${{ env.DOTNET_CORE_VERSION }}
-    - name: Setup .NET Core (for inproc extensions)
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: ${{ env.DOTNET_CORE_VERSION_INPROC }}
-        dotnet-quality: preview
-    - name: Restore
-      run: dotnet restore "${{ env.WORKING_DIRECTORY }}"
+# name: Build and deploy .NET Core application to Function App shopping-cartlist-api
+# on:
+#   push:
+#     branches:
+#     - master
+# permissions:
+#   id-token: write
+#   contents: read
+# env:
+#   AZURE_FUNCTIONAPP_NAME: shopping-cartlist-api
+#   AZURE_FUNCTIONAPP_PACKAGE_PATH: .\published
+#   CONFIGURATION: Release
+#   DOTNET_CORE_VERSION: 10.0.x
+#   WORKING_DIRECTORY: .
+#   DOTNET_CORE_VERSION_INPROC: 6.0.x
+# jobs:
+#   build:
+#     runs-on: windows-latest
+#     steps:
+#     - uses: actions/checkout@v4
+#     - name: Setup .NET SDK
+#       uses: actions/setup-dotnet@v4
+#       with:
+#         dotnet-version: ${{ env.DOTNET_CORE_VERSION }}
+#     - name: Setup .NET Core (for inproc extensions)
+#       uses: actions/setup-dotnet@v4
+#       with:
+#         dotnet-version: ${{ env.DOTNET_CORE_VERSION_INPROC }}
+#         dotnet-quality: preview
+#     - name: Restore
+#       run: dotnet restore "${{ env.WORKING_DIRECTORY }}"
       
-    - name: Clean
-      run: dotnet clean "${{ env.WORKING_DIRECTORY }}"
+#     - name: Clean
+#       run: dotnet clean "${{ env.WORKING_DIRECTORY }}"
 
-    - name: Build
-      run: dotnet build "${{ env.WORKING_DIRECTORY }}" --configuration ${{ env.CONFIGURATION }} --no-restore
+#     - name: Build
+#       run: dotnet build "${{ env.WORKING_DIRECTORY }}" --configuration ${{ env.CONFIGURATION }} --no-restore
 
-    - name: Publish
-      run: dotnet publish "${{ env.WORKING_DIRECTORY }}" --configuration ${{ env.CONFIGURATION }} --output "${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}"
+#     - name: Publish
+#       run: dotnet publish "${{ env.WORKING_DIRECTORY }}" --configuration ${{ env.CONFIGURATION }} --output "${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}"
 
     
-    - name: Verify publish output
-      run: |
-        dir "${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}"
+#     - name: Verify publish output
+#       run: |
+#         dir "${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}"
 
-    - name: Publish Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: functionapp
-        path: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-  deploy:
-    runs-on: windows-latest
-    needs: build
-    steps:
-    - name: Download artifact from build job
-      uses: actions/download-artifact@v4
-      with:
-        name: functionapp
-        path: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+#     - name: Publish Artifacts
+#       uses: actions/upload-artifact@v4
+#       with:
+#         name: functionapp
+#         path: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+#   deploy:
+#     runs-on: windows-latest
+#     needs: build
+#     steps:
+#     - name: Download artifact from build job
+#       uses: actions/download-artifact@v4
+#       with:
+#         name: functionapp
+#         path: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
     
-    - name: Azure Login
-      uses: azure/login@v2
-      with:
-        client-id: ${{ secrets.AZURE_CLIENT_ID }}
-        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+#     - name: Azure Login
+#       uses: azure/login@v2
+#       with:
+#         client-id: ${{ secrets.AZURE_CLIENT_ID }}
+#         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+#         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-    - name: Deploy to Function App (CLI)
-      run: |
-        az functionapp deployment source config-zip \
-          --resource-group azure-function-rg \
-          --name ${{ env.AZURE_FUNCTIONAPP_NAME }} \
-          --src "${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}"
+#     - name: Deploy to Function App (CLI)
+#       run: |
+#         az functionapp deployment source config-zip \
+#           --resource-group azure-function-rg \
+#           --name ${{ env.AZURE_FUNCTIONAPP_NAME }} \
+#           --src "${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}"
 
     # - name: Deploy to Azure Function App
     #   uses: Azure/functions-action@v1
@@ -79,3 +79,80 @@ jobs:
     #     app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
     #     publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
     #     package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+
+name: Build and deploy .NET isolated Function App
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AZURE_FUNCTIONAPP_NAME: shopping-cartlist-api
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: ./published
+  CONFIGURATION: Release
+  DOTNET_VERSION: 10.0.x
+  WORKING_DIRECTORY: .
+
+jobs:
+  build_and_deploy:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore "${{ env.WORKING_DIRECTORY }}"
+
+      - name: Clean
+        run: dotnet clean "${{ env.WORKING_DIRECTORY }}" --configuration ${{ env.CONFIGURATION }}
+
+      - name: Build
+        run: dotnet build "${{ env.WORKING_DIRECTORY }}" --configuration ${{ env.CONFIGURATION }} --no-restore
+
+      - name: Publish
+        run: dotnet publish "${{ env.WORKING_DIRECTORY }}" --configuration ${{ env.CONFIGURATION }} --output "${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}"
+
+      - name: Verify publish output
+        shell: pwsh
+        run: |
+          Write-Host "Published files:"
+          Get-ChildItem -Force "${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}"
+
+          if (-not (Test-Path "${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}\.azurefunctions")) {
+            Write-Error ".azurefunctions folder is missing from published output."
+          }
+
+          if (-not (Test-Path "${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}\host.json")) {
+            Write-Error "host.json is missing from published output."
+          }
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Azure Function App
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
+          package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+
+      - name: Restart Function App (optional safety)
+        shell: pwsh
+        run: |
+          Write-Host "Deployment completed."
+
